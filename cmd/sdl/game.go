@@ -2,17 +2,36 @@ package sdl
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/veandco/go-sdl2/sdl"
+)
+
+const (
+	cellSize = 20
+	rows     = windowHeight / cellSize
+	columns  = windowWidth / cellSize
 )
 
 type game struct {
 	window   *sdl.Window
 	renderer *sdl.Renderer
+	paused   bool
+	cells    [columns][rows]bool // (x,y), (columns, rows)
+}
+
+func (g *game) randomizeCells() {
+	for x := range g.cells {
+		for y := range g.cells[x] {
+			g.cells[x][y] = rand.Float32() > 0.7
+		}
+	}
 }
 
 func NewGame() *game {
-	return &game{}
+	game := game{}
+	game.randomizeCells()
+	return &game
 }
 
 func (g *game) Tick() {
@@ -27,27 +46,47 @@ func (g *game) Tick() {
 					case sdl.SCANCODE_ESCAPE:
 						return
 					case sdl.SCANCODE_SPACE:
-						// g.randColor()
 					case sdl.SCANCODE_P:
-						// g.pauseMusic()
+						if g.paused {
+							fmt.Println("unpaused")
+						} else {
+
+							fmt.Println("paused")
+						}
+						g.paused = !g.paused
+
 					}
 				}
 			}
 		}
-
-		// g.updateText()
-		// g.updateSprite()
-
-		g.renderer.Clear()
-
-		// g.renderer.Copy(g.backgroundImage, nil, nil)
-		// g.renderer.Copy(g.textImage, nil, &g.textRectangle)
-		// g.renderer.Copy(g.spriteImage, nil, &g.spriteRectangle)
-
-		g.renderer.Present()
+		g.Draw()
 		sdl.Delay(uint32(1000 / 60))
+	}
+}
+
+func (g *game) Draw() {
+	g.renderer.SetDrawColor(255, 255, 255, 255) // white
+	g.renderer.Clear()
+
+	for x := 0; x < windowWidth; x += int(cellSize) {
+		for y := 0; y < windowHeight; y += int(cellSize) {
+			cell := sdl.Rect{
+				X: int32(x),
+				Y: int32(y),
+				W: int32(cellSize),
+				H: int32(cellSize),
+			}
+
+			if g.cells[x/cellSize][y/cellSize] {
+				g.renderer.SetDrawColor(0, 0, 0, 255) // black
+				g.renderer.FillRect(&cell)
+			}
+
+		}
 
 	}
+
+	g.renderer.Present()
 }
 
 func (g *game) Init() error {
