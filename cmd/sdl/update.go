@@ -14,7 +14,6 @@ func (g *game) update() {
 					nextCells[colX][rowY] = true
 
 				}
-
 			} else {
 				if aliveNeighbors == 3 {
 					nextCells[colX][rowY] = true

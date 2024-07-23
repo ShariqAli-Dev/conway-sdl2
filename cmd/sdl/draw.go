@@ -6,6 +6,19 @@ func (g *game) Draw() {
 	g.renderer.SetDrawColor(255, 255, 255, 255) // white
 	g.renderer.Clear()
 
+	g.drawGrid()
+	if g.paused {
+		g.renderer.Copy(g.unpauseTextTexture, nil, &g.unpauseTextRectangle)
+	} else {
+		g.renderer.Copy(g.pauseTextTexture, nil, &g.pauseTextRectangle)
+	}
+	g.renderer.Copy(g.spaceTextTexture, nil, &g.spaceTextRectangle)
+	g.renderer.Copy(g.mouseTextTexture, nil, &g.mouseTextRectangle)
+
+	g.renderer.Present()
+}
+
+func (g *game) drawGrid() {
 	for xPixel := 0; xPixel < windowWidth; xPixel += int(cellSize) {
 		for yPixel := 0; yPixel < windowHeight; yPixel += int(cellSize) {
 			cell := sdl.Rect{
@@ -23,6 +36,4 @@ func (g *game) Draw() {
 		}
 
 	}
-
-	g.renderer.Present()
 }

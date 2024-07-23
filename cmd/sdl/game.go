@@ -8,15 +8,33 @@ import (
 )
 
 const (
-	cellSize = 20
-	rowsY    = windowHeight / cellSize
-	columnsX = windowWidth / cellSize
-	fps      = 20
+	windowWidth  = 1280
+	windowHeight = 720
+	windowTitle  = "Conway's Game of Life"
+	cellSize     = 20
+	rowsY        = windowHeight / cellSize
+	columnsX     = windowWidth / cellSize
+	fps          = 15
+	fontSize     = 30
 )
 
 type game struct {
 	window    *sdl.Window
 	renderer  *sdl.Renderer
+	fontColor sdl.Color
+
+	pauseTextRectangle sdl.Rect
+	pauseTextTexture   *sdl.Texture
+
+	unpauseTextRectangle sdl.Rect
+	unpauseTextTexture   *sdl.Texture
+
+	spaceTextRectangle sdl.Rect
+	spaceTextTexture   *sdl.Texture
+
+	mouseTextRectangle sdl.Rect
+	mouseTextTexture   *sdl.Texture
+
 	paused    bool
 	cells     [columnsX][rowsY]bool
 	lastCellX int32
@@ -25,7 +43,9 @@ type game struct {
 }
 
 func NewGame() *game {
-	game := game{}
+	game := game{
+		fontColor: sdl.Color{R: 255, B: 0, G: 0},
+	}
 	// randomize cells
 	for x := range game.cells {
 		for y := range game.cells[x] {
@@ -52,6 +72,18 @@ func (g *game) Init() error {
 }
 
 func (g *game) Close() {
+	g.mouseTextTexture.Destroy()
+	g.mouseTextTexture = nil
+
+	g.spaceTextTexture.Destroy()
+	g.spaceTextTexture = nil
+
+	g.unpauseTextTexture.Destroy()
+	g.unpauseTextTexture = nil
+
+	g.pauseTextTexture.Destroy()
+	g.pauseTextTexture = nil
+
 	g.renderer.Destroy()
 	g.renderer = nil
 
@@ -77,11 +109,6 @@ func (g *game) Tick() {
 							}
 						}
 					case sdl.SCANCODE_P:
-						if g.paused {
-							fmt.Println("unpaused")
-						} else {
-							fmt.Println("paused")
-						}
 						g.paused = !g.paused
 					}
 				}

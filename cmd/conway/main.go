@@ -18,5 +18,9 @@ func main() {
 		log.Fatal(error.Error(err))
 	}
 
+	if err := game.LoadMedia(); err != nil {
+		log.Fatal(error.Error(err))
+	}
+
 	game.Tick()
 }
