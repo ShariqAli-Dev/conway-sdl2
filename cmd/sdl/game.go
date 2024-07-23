@@ -2,91 +2,37 @@ package sdl
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 
 	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
 	cellSize = 20
-	rows     = windowHeight / cellSize
-	columns  = windowWidth / cellSize
+	rowsY    = windowHeight / cellSize
+	columnsX = windowWidth / cellSize
+	fps      = 20
 )
 
 type game struct {
-	window   *sdl.Window
-	renderer *sdl.Renderer
-	paused   bool
-	cells    [columns][rows]bool // (x,y), (columns, rows)
-}
-
-func (g *game) randomizeCells() {
-	for x := range g.cells {
-		for y := range g.cells[x] {
-			g.cells[x][y] = rand.Float32() > 0.7
-		}
-	}
+	window    *sdl.Window
+	renderer  *sdl.Renderer
+	paused    bool
+	cells     [columnsX][rowsY]bool
+	lastCellX int32
+	lastCellY int32
+	dragging  bool
 }
 
 func NewGame() *game {
 	game := game{}
-	game.randomizeCells()
+	// randomize cells
+	for x := range game.cells {
+		for y := range game.cells[x] {
+			game.cells[x][y] = rand.Float32() > 0.7
+		}
+	}
 	return &game
-}
-
-func (g *game) Tick() {
-	for {
-		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
-			switch e := event.(type) {
-			case *sdl.QuitEvent:
-				return
-			case *sdl.KeyboardEvent:
-				if e.Type == sdl.KEYDOWN {
-					switch e.Keysym.Scancode {
-					case sdl.SCANCODE_ESCAPE:
-						return
-					case sdl.SCANCODE_SPACE:
-					case sdl.SCANCODE_P:
-						if g.paused {
-							fmt.Println("unpaused")
-						} else {
-
-							fmt.Println("paused")
-						}
-						g.paused = !g.paused
-
-					}
-				}
-			}
-		}
-		g.Draw()
-		sdl.Delay(uint32(1000 / 60))
-	}
-}
-
-func (g *game) Draw() {
-	g.renderer.SetDrawColor(255, 255, 255, 255) // white
-	g.renderer.Clear()
-
-	for x := 0; x < windowWidth; x += int(cellSize) {
-		for y := 0; y < windowHeight; y += int(cellSize) {
-			cell := sdl.Rect{
-				X: int32(x),
-				Y: int32(y),
-				W: int32(cellSize),
-				H: int32(cellSize),
-			}
-
-			if g.cells[x/cellSize][y/cellSize] {
-				g.renderer.SetDrawColor(0, 0, 0, 255) // black
-				g.renderer.FillRect(&cell)
-			}
-
-		}
-
-	}
-
-	g.renderer.Present()
 }
 
 func (g *game) Init() error {
@@ -111,4 +57,68 @@ func (g *game) Close() {
 
 	g.window.Destroy()
 	g.window = nil
+}
+
+func (g *game) Tick() {
+	for {
+		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
+			switch e := event.(type) {
+			case *sdl.QuitEvent:
+				return
+			case *sdl.KeyboardEvent:
+				if e.Type == sdl.KEYDOWN {
+					switch e.Keysym.Scancode {
+					case sdl.SCANCODE_ESCAPE:
+						return
+					case sdl.SCANCODE_SPACE:
+						for col := range columnsX {
+							for row := range rowsY {
+								g.cells[col][row] = false
+							}
+						}
+					case sdl.SCANCODE_P:
+						if g.paused {
+							fmt.Println("unpaused")
+						} else {
+							fmt.Println("paused")
+						}
+						g.paused = !g.paused
+					}
+				}
+			case *sdl.MouseButtonEvent:
+				if e.Type == sdl.MOUSEBUTTONDOWN {
+					if e.Button == sdl.BUTTON_LEFT {
+						cellX := e.X / cellSize
+						cellY := e.Y / cellSize
+						g.cells[cellX][cellY] = !g.cells[cellX][cellY]
+						g.dragging = true
+						g.lastCellX = cellX
+						g.lastCellY = cellY
+					}
+				} else if e.Type == sdl.MOUSEBUTTONUP {
+					g.dragging = false
+					g.lastCellX = -1
+					g.lastCellY = -1
+				}
+			case *sdl.MouseMotionEvent:
+				if g.dragging {
+					cellX := e.X / cellSize
+					cellY := e.Y / cellSize
+
+					if cellX != g.lastCellX || cellY != g.lastCellY {
+						g.cells[cellX][cellY] = !g.cells[cellX][cellY]
+						g.lastCellX = cellX
+						g.lastCellY = cellY
+					}
+				}
+			}
+		}
+
+		if !g.paused {
+			g.update()
+		}
+		g.Draw()
+		sdl.Delay(uint32(1000 / fps))
+
+	}
 }

@@ -19,5 +19,4 @@ func main() {
 	}
 
 	game.Tick()
-
 }
